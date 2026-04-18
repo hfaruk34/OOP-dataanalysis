@@ -865,10 +865,10 @@ def grafik_png(fig, w=180, h=90):
 def olustur_pdf(df, ulke, corr_val, kat_engag):
     import datetime
 
-    # Renkler
-    C_NAVY   = (31,  73, 125)   # koyu lacivert - bolum basligi
-    C_BLUE   = (68, 114, 196)   # orta mavi     - tablo basligi
-    C_LIGHT  = (220, 230, 245)  # acik mavi     - tek satirlar
+    # Renkler - YouTube kirmizi/beyaz tema
+    C_NAVY   = (180,   0,   0)  # koyu YouTube kirmizisi - bolum basligi
+    C_BLUE   = (220,  30,  30)  # orta kirmizi           - tablo basligi
+    C_LIGHT  = (255, 235, 235)  # cok acik pembe         - zebra satirlar
     C_WHITE  = (255, 255, 255)
     C_GRAY   = (100, 100, 100)
     C_BLACK  = (30,  30,  30)
@@ -932,6 +932,20 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
             pdf.cell(gw, 6, str(val), border=1, fill=True)
         pdf.ln()
 
+    def yt_ikon(x, y, w=28):
+        """YouTube play button ikonu cizer (kirmizi dikdortgen + beyaz ucgen)."""
+        h = round(w * 0.70, 2)
+        pdf.set_fill_color(255, 0, 0)
+        pdf.rect(x, y, w, h, style="F")
+        cx = x + w / 2
+        cy = y + h / 2
+        ts = h * 0.38
+        pdf.set_fill_color(255, 255, 255)
+        pts = [(cx - ts * 0.5, cy - ts * 0.85),
+               (cx - ts * 0.5, cy + ts * 0.85),
+               (cx + ts * 1.0, cy)]
+        pdf.polygon(pts, style="F")
+
     def grafik_ekle(fig):
         # Yuksekligi Plotly'nin kendi height ayarindan alir, genislik W'ye orantili olceklenir
         img = fig.to_image(format="png", width=1440, scale=1)
@@ -947,18 +961,23 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
     # =============================================
     pdf.add_page()
 
-    # Ust bant
-    pdf.set_fill_color(*C_NAVY)
-    pdf.rect(0, 0, 210, 45, style="F")
-    pdf.set_y(12)
+    # Ust bant (kirmizi)
+    pdf.set_fill_color(200, 0, 0)
+    pdf.rect(0, 0, 210, 52, style="F")
+    # YouTube ikonu (sol taraf, ortalanmis)
+    yt_ikon(x=15, y=11, w=32)
+    # Baslik
+    pdf.set_y(10)
     pdf.set_font("Helvetica", "B", 22)
     pdf.set_text_color(*C_WHITE)
-    pdf.cell(0, 10, "YouTube Trend Video Analizi", ln=True, align="C")
-    pdf.set_font("Helvetica", "", 12)
+    pdf.cell(0, 12, "YouTube Trend Video Analizi", ln=True, align="C")
+    pdf.set_font("Helvetica", "", 11)
     pdf.cell(0, 8, "Veri Odakli Kanal ve Icerik Performans Raporu", ln=True, align="C")
+    pdf.set_font("Helvetica", "I", 9)
+    pdf.cell(0, 7, "Kaynak: YouTube Data API v3", ln=True, align="C")
     pdf.set_text_color(*C_BLACK)
 
-    pdf.set_y(55)
+    pdf.set_y(62)
 
     # Bilgi kutulari (2x2 grid)
     bilgi = [
