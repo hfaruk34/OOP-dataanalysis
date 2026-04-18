@@ -198,9 +198,11 @@ df_display = df.drop(columns=["video_id"]).rename(columns={
     "yayın_saati": "Saat",
     "tag_sayisi": "Tag",
 })
-st.dataframe(df_display, use_container_width=True, hide_index=True, height=320)
+df_display.index = range(1, len(df_display) + 1)
+df_display.index.name = "No"
+st.dataframe(df_display, use_container_width=True, hide_index=False, height=320)
 
-csv_bytes = df_display.to_csv(index=False).encode("utf-8")
+csv_bytes = df_display.to_csv(index=True).encode("utf-8")
 st.download_button(
     label="Veri setini CSV olarak indir",
     data=csv_bytes,
