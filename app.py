@@ -863,170 +863,330 @@ def grafik_png(fig, w=180, h=90):
     return fig.to_image(format="png", width=w*4, height=h*4, scale=1)
 
 def olustur_pdf(df, ulke, corr_val, kat_engag):
-    pdf = FPDF()
+    import datetime
+
+    # Renkler
+    C_NAVY   = (31,  73, 125)   # koyu lacivert – bolum basligi
+    C_BLUE   = (68, 114, 196)   # orta mavi     – tablo basligi
+    C_LIGHT  = (220, 230, 245)  # acik mavi     – tek satirlar
+    C_WHITE  = (255, 255, 255)
+    C_GRAY   = (100, 100, 100)
+    C_BLACK  = (30,  30,  30)
+
+    s = ascii_yap
+
+    # ---------- PDF sinifi (footer ile) ----------
+    class PDF(FPDF):
+        def __init__(self, bolge, n):
+            super().__init__()
+            self._bolge = bolge
+            self._n = n
+
+        def footer(self):
+            self.set_y(-12)
+            self.set_font("Helvetica", "I", 8)
+            self.set_text_color(*C_GRAY)
+            self.set_x(self.l_margin)
+            self.cell(self.epw / 2, 5,
+                      f"YouTube Trend Analizi | {self._bolge} | {self._n} video",
+                      align="L")
+            self.cell(self.epw / 2, 5,
+                      f"Sayfa {self.page_no()}",
+                      align="R", ln=True)
+            self.set_text_color(*C_BLACK)
+
+    pdf = PDF(s(ulke), len(df))
     pdf.set_margins(15, 15, 15)
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=18)
 
-    s = ascii_yap  # kisaltma
-    W = pdf.epw  # kullanilabilir sayfa genisligi (margin sonrasi)
+    W = 210 - 30  # A4 - sol/sag margin = 180 mm (sabit, epw ile ayni)
 
-    # Baslik
-    pdf.set_font("Helvetica", "B", 18)
-    pdf.cell(0, 10, "YouTube Trend Video Analizi", ln=True, align="C")
-    pdf.set_font("Helvetica", "", 11)
-    pdf.cell(0, 7, s(f"Bolge: {ulke}  |  Video Sayisi: {len(df)}  |  Kaynak: YouTube Data API v3"), ln=True, align="C")
-    pdf.ln(4)
-
-    # Ozet metrikler
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, "Genel Istatistikler", ln=True)
-    pdf.set_font("Helvetica", "", 10)
-    satirlar = [
-        ("Toplam Goruntulenme",   f"{df['goruntulenme'].sum():,}"),
-        ("Ortalama Goruntulenme", f"{df['goruntulenme'].mean():,.0f}"),
-        ("Medyan Goruntulenme",   f"{df['goruntulenme'].median():,.0f}"),
-        ("Toplam Begeni",         f"{df['begeni'].sum():,}"),
-        ("Ortalama Etkilesim %",  f"{df['etkilesim_orani'].mean():.4f}%"),
-        ("En Populer Kategori",   s(df['kategori'].value_counts().idxmax())),
-        ("Benzersiz Kanal",       str(df['kanal'].nunique())),
-        ("Pearson r (gor~beg)",   f"{corr_val:.4f}"),
-    ]
-    col_w = round(W / 2, 2)
-    for k, v in satirlar:
+    # ---------- yardimci fonksiyonlar ----------
+    def bolum_basligi(baslik):
+        pdf.set_fill_color(*C_NAVY)
+        pdf.set_text_color(*C_WHITE)
+        pdf.set_font("Helvetica", "B", 12)
         pdf.set_x(pdf.l_margin)
-        pdf.cell(col_w, 7, k, border=1)
-        pdf.cell(col_w, 7, v, border=1, ln=True)
-    pdf.ln(5)
+        pdf.cell(W, 9, baslik, ln=True, fill=True)
+        pdf.set_text_color(*C_BLACK)
+        pdf.ln(2)
 
-    # Betimsel istatistik tablosu
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.set_x(pdf.l_margin)
-    pdf.cell(W, 8, "Betimsel Istatistikler", ln=True)
-    pdf.set_font("Helvetica", "", 9)
-    num_cols = ["goruntulenme", "begeni", "yorum", "etkilesim_orani", "sure_dk"]
-    col_names = ["Goruntulenme", "Begeni", "Yorum", "Etkilesim %", "Sure (dk)"]
-    stat_labels = ["Ort.", "Std", "Min", "Q1", "Medyan", "Q3", "Max"]
-    n_cols = len(col_names) + 1
-    cw = round(W / n_cols, 2)
-    lw = round(W - cw * len(col_names), 2)  # son sutun floating point kalanini alir
-    pdf.set_x(pdf.l_margin)
-    pdf.cell(lw, 6, "", border=1)
-    for cn in col_names:
-        pdf.cell(cw, 6, cn[:10], border=1)
-    pdf.ln()
-    desc = df[num_cols].describe()
-    for lbl, idx in zip(stat_labels, ["mean","std","min","25%","50%","75%","max"]):
+    def tablo_basligi(sutunlar, genislikler):
+        pdf.set_fill_color(*C_BLUE)
+        pdf.set_text_color(*C_WHITE)
+        pdf.set_font("Helvetica", "B", 9)
         pdf.set_x(pdf.l_margin)
-        pdf.cell(lw, 6, lbl, border=1)
-        for c in num_cols:
-            pdf.cell(cw, 6, f"{desc.loc[idx, c]:,.1f}", border=1)
+        for baslik, gw in zip(sutunlar, genislikler):
+            pdf.cell(gw, 7, baslik, border=1, fill=True)
         pdf.ln()
-    pdf.ln(5)
+        pdf.set_text_color(*C_BLACK)
 
-    # En cok izlenen 5 video
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.set_x(pdf.l_margin)
-    pdf.cell(W, 8, "En Cok Izlenen 5 Video", ln=True)
-    pdf.set_font("Helvetica", "", 9)
-    c1 = round(W * 0.05, 2)
-    c4 = round(W * 0.20, 2)
-    c3 = round(W * 0.25, 2)
-    c2 = round(W - c1 - c3 - c4, 2)  # kalan genislik
-    pdf.set_x(pdf.l_margin)
-    pdf.cell(c1, 6, "No", border=1)
-    pdf.cell(c2, 6, "Baslik", border=1)
-    pdf.cell(c3, 6, "Kanal", border=1)
-    pdf.cell(c4, 6, "Goruntulenme", border=1, ln=True)
-    top5 = df.nlargest(5, "goruntulenme")[["baslik", "kanal", "goruntulenme"]].reset_index(drop=True)
-    for i, row in top5.iterrows():
+    def tablo_satiri(degerler, genislikler, zebra):
+        if zebra:
+            pdf.set_fill_color(*C_LIGHT)
+        else:
+            pdf.set_fill_color(*C_WHITE)
+        pdf.set_font("Helvetica", "", 9)
         pdf.set_x(pdf.l_margin)
-        pdf.cell(c1, 6, str(i+1), border=1)
-        pdf.cell(c2, 6, s(row["baslik"][:55]), border=1)
-        pdf.cell(c3, 6, s(row["kanal"][:25]), border=1)
-        pdf.cell(c4, 6, f"{row['goruntulenme']:,}", border=1, ln=True)
-    pdf.ln(5)
+        for val, gw in zip(degerler, genislikler):
+            pdf.cell(gw, 6, str(val), border=1, fill=True)
+        pdf.ln()
 
-    # Grafik 1: Top 10 goruntulenme
+    def grafik_ekle(fig, yukseklik=90):
+        img = grafik_png(fig, w=180, h=yukseklik)
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+            f.write(img)
+            fpath = f.name
+        pdf.set_x(pdf.l_margin)
+        pdf.image(fpath, x=pdf.l_margin, w=W)
+        pdf.ln(3)
+
+    # =============================================
+    # SAYFA 1 – KAPAK
+    # =============================================
     pdf.add_page()
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, "En Cok Izlenen 10 Video", ln=True)
+
+    # Ust bant
+    pdf.set_fill_color(*C_NAVY)
+    pdf.rect(0, 0, 210, 45, style="F")
+    pdf.set_y(12)
+    pdf.set_font("Helvetica", "B", 22)
+    pdf.set_text_color(*C_WHITE)
+    pdf.cell(0, 10, "YouTube Trend Video Analizi", ln=True, align="C")
+    pdf.set_font("Helvetica", "", 12)
+    pdf.cell(0, 8, "Veri Odakli Kanal ve Icerik Performans Raporu", ln=True, align="C")
+    pdf.set_text_color(*C_BLACK)
+
+    pdf.set_y(55)
+
+    # Bilgi kutulari (2x2 grid)
+    bilgi = [
+        ("Bolge",         s(ulke)),
+        ("Video Sayisi",  str(len(df))),
+        ("Rapor Tarihi",  datetime.date.today().strftime("%d.%m.%Y")),
+        ("Veri Kaynagi",  "YouTube Data API v3"),
+    ]
+    bw = round(W / 2, 2)
+    for i, (k, v) in enumerate(bilgi):
+        if i % 2 == 0:
+            pdf.set_x(pdf.l_margin)
+        pdf.set_fill_color(*C_LIGHT)
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.cell(bw * 0.45, 9, k, border=1, fill=True)
+        pdf.set_fill_color(*C_WHITE)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.cell(bw * 0.55, 9, v, border=1, fill=True)
+        if i % 2 == 1:
+            pdf.ln()
+    pdf.ln(8)
+
+    # Ozet rakamlar (4 kart)
+    ozet = [
+        ("Toplam Goruntulenme", f"{df['goruntulenme'].sum():,}"),
+        ("Ort. Begeni",         f"{df['begeni'].mean():,.0f}"),
+        ("En Populer Kategori", s(df['kategori'].value_counts().idxmax())),
+        ("Pearson r",           f"{corr_val:.3f}"),
+    ]
+    kart_w = round(W / 4, 2)
+    pdf.set_x(pdf.l_margin)
+    for baslik, deger in ozet:
+        pdf.set_fill_color(*C_NAVY)
+        pdf.set_text_color(*C_WHITE)
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.cell(kart_w, 7, baslik, border=0, fill=True, align="C")
+    pdf.ln()
+    pdf.set_x(pdf.l_margin)
+    for baslik, deger in ozet:
+        pdf.set_fill_color(*C_LIGHT)
+        pdf.set_text_color(*C_NAVY)
+        pdf.set_font("Helvetica", "B", 11)
+        pdf.cell(kart_w, 10, deger[:16], border=1, fill=True, align="C")
+    pdf.ln()
+    pdf.set_text_color(*C_BLACK)
+
+    # =============================================
+    # SAYFA 2 – GENEL ISTATISTIKLER
+    # =============================================
+    pdf.add_page()
+    bolum_basligi("1. Genel Istatistikler")
+
+    satirlar = [
+        ("Toplam Goruntulenme",    f"{df['goruntulenme'].sum():,}"),
+        ("Ortalama Goruntulenme",  f"{df['goruntulenme'].mean():,.0f}"),
+        ("Medyan Goruntulenme",    f"{df['goruntulenme'].median():,.0f}"),
+        ("Maks. Goruntulenme",     f"{df['goruntulenme'].max():,}"),
+        ("Toplam Begeni",          f"{df['begeni'].sum():,}"),
+        ("Ortalama Begeni",        f"{df['begeni'].mean():,.0f}"),
+        ("Toplam Yorum",           f"{df['yorum'].sum():,}"),
+        ("Ort. Etkilesim Orani",   f"{df['etkilesim_orani'].mean():.4f}%"),
+        ("En Populer Kategori",    s(df['kategori'].value_counts().idxmax())),
+        ("Benzersiz Kanal Sayisi", str(df['kanal'].nunique())),
+        ("Benzersiz Kategori",     str(df['kategori'].nunique())),
+        ("Pearson r (gor~beg)",    f"{corr_val:.4f}"),
+    ]
+    lw = round(W * 0.55, 2)
+    vw = round(W - lw, 2)
+    tablo_basligi(["Metrik", "Deger"], [lw, vw])
+    for i, (k, v) in enumerate(satirlar):
+        tablo_satiri([k, v], [lw, vw], zebra=(i % 2 == 0))
+    pdf.ln(6)
+
+    bolum_basligi("2. Betimsel Istatistikler")
+    num_cols  = ["goruntulenme", "begeni", "yorum", "etkilesim_orani", "sure_dk"]
+    col_names = ["Goruntulenme", "Begeni", "Yorum", "Etkilesim%", "Sure(dk)"]
+    stat_map  = [("Ort.",   "mean"), ("Std",    "std"),  ("Min",    "min"),
+                 ("Q1",     "25%"),  ("Medyan", "50%"),  ("Q3",     "75%"),
+                 ("Maks.",  "max")]
+    lbl_w = round(W * 0.12, 2)
+    dcw   = round((W - lbl_w) / len(num_cols), 2)
+    tablo_basligi([""] + col_names, [lbl_w] + [dcw] * len(num_cols))
+    desc = df[num_cols].describe()
+    for i, (lbl, idx) in enumerate(stat_map):
+        vals = [f"{desc.loc[idx, c]:,.1f}" for c in num_cols]
+        tablo_satiri([lbl] + vals, [lbl_w] + [dcw] * len(num_cols), zebra=(i % 2 == 0))
+
+    # =============================================
+    # SAYFA 3 – EN COK IZLENEN VIDEOLAR
+    # =============================================
+    pdf.add_page()
+    bolum_basligi("3. En Cok Izlenen 10 Video")
     top10_pdf = df.nlargest(10, "goruntulenme")[["baslik", "goruntulenme"]].copy()
     top10_pdf["baslik"] = top10_pdf["baslik"].apply(ascii_yap)
     top10_pdf = top10_pdf.sort_values("goruntulenme")
     fig1 = px.bar(top10_pdf, x="goruntulenme", y="baslik", orientation="h",
-                  color="goruntulenme", color_continuous_scale="Blues")
-    fig1.update_layout(showlegend=False, margin=dict(t=20,b=20,l=10,r=10), height=400)
-    img1 = grafik_png(fig1)
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-        f.write(img1); f1path = f.name
-    pdf.image(f1path, x=pdf.l_margin, w=W)
-    pdf.ln(3)
+                  color="goruntulenme", color_continuous_scale="Blues",
+                  labels={"goruntulenme": "Goruntulenme", "baslik": ""})
+    fig1.update_layout(showlegend=False, coloraxis_showscale=False,
+                       margin=dict(t=10, b=10, l=5, r=5), height=380,
+                       plot_bgcolor="white", paper_bgcolor="white",
+                       font=dict(size=11))
+    fig1.update_xaxes(showgrid=True, gridcolor="#e0e0e0")
+    grafik_ekle(fig1, yukseklik=85)
+    pdf.ln(2)
 
-    # Grafik 2: Kategori pasta
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, "Kategori Dagilimi", ln=True)
+    bolum_basligi("4. En Cok Izlenen 5 Video – Detay")
+    c_no = round(W * 0.06, 2)
+    c_gor = round(W * 0.22, 2)
+    c_beg = round(W * 0.14, 2)
+    c_kan = round(W - c_no - c_gor - c_beg, 2)
+    tablo_basligi(["#", "Baslik", "Kanal", "Goruntulenme"],
+                  [c_no, c_kan, c_beg + 5, c_gor - 5])
+    top5 = df.nlargest(5, "goruntulenme")[["baslik", "kanal", "goruntulenme"]].reset_index(drop=True)
+    for i, row in top5.iterrows():
+        tablo_satiri(
+            [str(i + 1), s(row["baslik"][:48]), s(row["kanal"][:22]),
+             f"{row['goruntulenme']:,}"],
+            [c_no, c_kan, c_beg + 5, c_gor - 5],
+            zebra=(i % 2 == 0)
+        )
+
+    # =============================================
+    # SAYFA 4 – KATEGORI ANALIZI
+    # =============================================
+    pdf.add_page()
+    bolum_basligi("5. Kategori Dagilimi")
     kat_say = df["kategori"].value_counts().reset_index()
     kat_say.columns = ["Kategori", "Sayi"]
     kat_say["Kategori"] = kat_say["Kategori"].apply(ascii_yap)
     fig2 = px.pie(kat_say, values="Sayi", names="Kategori",
-                  color_discrete_sequence=px.colors.qualitative.Set2, hole=0.3)
-    fig2.update_traces(textposition="inside", textinfo="percent+label")
-    fig2.update_layout(showlegend=False, margin=dict(t=20,b=20,l=10,r=10), height=380)
-    img2 = grafik_png(fig2)
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-        f.write(img2); f2path = f.name
-    pdf.image(f2path, x=pdf.l_margin, w=W)
-    pdf.ln(3)
+                  color_discrete_sequence=px.colors.qualitative.Set2, hole=0.35)
+    fig2.update_traces(textposition="inside", textinfo="percent+label",
+                       textfont_size=10)
+    fig2.update_layout(showlegend=True, legend=dict(orientation="v", x=1, y=0.5),
+                       margin=dict(t=10, b=10, l=5, r=80), height=320,
+                       paper_bgcolor="white")
+    grafik_ekle(fig2, yukseklik=72)
 
-    # Grafik 3: Korelasyon matrisi
-    pdf.add_page()
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, "Korelasyon Matrisi", ln=True)
-    corr_cols = {"goruntulenme":"Goruntulenme","begeni":"Begeni","yorum":"Yorum",
-                 "etkilesim_orani":"Etkilesim%","sure_dk":"Sure"}
-    cm = df[list(corr_cols.keys())].rename(columns=corr_cols).corr().round(3)
-    fig3 = px.imshow(cm, text_auto=True, color_continuous_scale="RdBu_r", zmin=-1, zmax=1)
-    fig3.update_layout(margin=dict(t=20,b=20,l=10,r=10), height=380)
-    img3 = grafik_png(fig3)
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-        f.write(img3); f3path = f.name
-    pdf.image(f3path, x=pdf.l_margin, w=W)
-    pdf.ln(3)
-
-    # Grafik 4: Etkilesim orani bar
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, "Kategoriye Gore Ortalama Etkilesim Orani", ln=True)
+    bolum_basligi("6. Kategoriye Gore Ortalama Etkilesim Orani")
     ke = kat_engag.copy()
     ke["kategori"] = ke["kategori"].apply(ascii_yap)
     fig4 = px.bar(ke, x="etkilesim_orani", y="kategori", orientation="h",
-                  color="etkilesim_orani", color_continuous_scale="Greens")
-    fig4.update_layout(showlegend=False, margin=dict(t=20,b=20,l=10,r=10), height=350)
-    img4 = grafik_png(fig4)
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-        f.write(img4); f4path = f.name
-    pdf.image(f4path, x=pdf.l_margin, w=W)
+                  color="etkilesim_orani", color_continuous_scale="Greens",
+                  labels={"etkilesim_orani": "Ort. Etkilesim %", "kategori": ""})
+    fig4.update_layout(showlegend=False, coloraxis_showscale=False,
+                       margin=dict(t=10, b=10, l=5, r=5), height=320,
+                       plot_bgcolor="white", paper_bgcolor="white")
+    fig4.update_xaxes(showgrid=True, gridcolor="#e0e0e0")
+    grafik_ekle(fig4, yukseklik=72)
 
-    # Son sayfa: degerlendirme
+    # =============================================
+    # SAYFA 5 – KORELASYON
+    # =============================================
     pdf.add_page()
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, "Genel Degerlendirme", ln=True)
-    pdf.set_font("Helvetica", "", 10)
+    bolum_basligi("7. Korelasyon Matrisi")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(*C_GRAY)
+    pdf.set_x(pdf.l_margin)
+    pdf.multi_cell(W, 5,
+        "Asagidaki matris; goruntulenme, begeni, yorum, etkilesim orani ve sure "
+        "degiskenleri arasindaki Pearson korelasyon katsayilarini gostermektedir. "
+        "+1 mukemmel pozitif, -1 mukemmel negatif iliskiyi ifade eder.")
+    pdf.set_text_color(*C_BLACK)
+    pdf.ln(2)
+    corr_cols = {"goruntulenme": "Goruntulenme", "begeni": "Begeni",
+                 "yorum": "Yorum", "etkilesim_orani": "Etkilesim%", "sure_dk": "Sure"}
+    cm = df[list(corr_cols.keys())].rename(columns=corr_cols).corr().round(2)
+    fig3 = px.imshow(cm, text_auto=True, color_continuous_scale="RdBu_r",
+                     zmin=-1, zmax=1)
+    fig3.update_layout(margin=dict(t=10, b=10, l=5, r=5), height=360,
+                       paper_bgcolor="white", font=dict(size=11))
+    grafik_ekle(fig3, yukseklik=80)
+
+    # =============================================
+    # SAYFA 6 – DEGERLENDIRME
+    # =============================================
+    pdf.add_page()
+    bolum_basligi("8. Genel Degerlendirme ve Bulgular")
+
+    iliski = ("Guclu pozitif iliski" if corr_val > 0.7
+              else "Orta duzey iliski" if corr_val > 0.4
+              else "Zayif iliski")
     bulgular = [
-        f"- Gozlem sayisi: {len(df)} trend video ({s(ulke)})",
-        "- Goruntulenme dagilimi sagdan carpik (log-normal) bir yapi sergilemektedir.",
-        f"- Pearson korelasyonu (goruntulenme ~ begeni): r = {corr_val:.4f}",
-        f"  {'Guclu pozitif iliski' if corr_val > 0.7 else 'Orta duzey iliski' if corr_val > 0.4 else 'Zayif iliski'} tespit edilmistir.",
-        f"- En yuksek etkilesim orani: {s(kat_engag.iloc[0]['kategori'])} kategorisi",
-        f"- En fazla trend video: {s(df['kategori'].value_counts().idxmax())} kategorisi",
-        "- Orta uzunluktaki videolar (5-20 dk) goruntulenme acisindan en verimli aralik.",
+        ("Veri Seti",
+         f"{len(df)} trend video analiz edilmistir. Bolge: {s(ulke)}."),
+        ("Goruntulenme Dagilimi",
+         "Dagilim sagdan carpik (log-normal) bir yapi sergilemektedir; "
+         "kucuk bir grup video izlenmelerin buyuk bolumunu almaktadir."),
+        ("Goruntulenme – Begeni Iliskisi",
+         f"Pearson r = {corr_val:.4f}. {iliski} tespit edilmistir. "
+         "Begeni sayisi yuksek videolar genellikle daha fazla izlenmektedir."),
+        ("Etkilesim",
+         f"En yuksek ortalama etkilesim orani '{s(kat_engag.iloc[0]['kategori'])}' "
+         "kategorisinde olculmustur. Bu kategori izleyici bagliligi acisindan one cikmaktadir."),
+        ("Populer Kategori",
+         f"En fazla trend video '{s(df['kategori'].value_counts().idxmax())}' "
+         "kategorisinde yer almaktadir."),
+        ("Video Suresi",
+         "5–20 dakika arasi videolar goruntulenme ve etkilesim dengesi "
+         "acisindan en verimli aralik olarak gozlemlenmistir."),
+        ("Kanal Cesitliligi",
+         f"Veri setinde {df['kanal'].nunique()} benzersiz kanal bulunmaktadir. "
+         "Trend listesinin belirli kanallar tarafindan domine edilip edilmedigi "
+         "icerik stratejisi icin kritik bir gostergedir."),
     ]
-    for b in bulgular:
+    for baslik, metin in bulgular:
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_text_color(*C_NAVY)
         pdf.set_x(pdf.l_margin)
-        pdf.multi_cell(W, 7, b)
+        pdf.cell(W, 6, baslik, ln=True)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.set_text_color(*C_BLACK)
+        pdf.set_x(pdf.l_margin)
+        pdf.multi_cell(W, 5, metin)
+        pdf.ln(2)
+
+    # Alt cizgi
+    pdf.ln(4)
+    pdf.set_draw_color(*C_NAVY)
+    pdf.set_line_width(0.5)
+    pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + W, pdf.get_y())
     pdf.ln(3)
-    pdf.set_font("Helvetica", "I", 9)
-    pdf.cell(0, 6, "Kaynak: YouTube Data API v3", ln=True, align="R")
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_text_color(*C_GRAY)
+    pdf.set_x(pdf.l_margin)
+    pdf.cell(W, 5,
+             f"Kaynak: YouTube Data API v3  |  Olusturulma: {datetime.date.today().strftime('%d.%m.%Y')}",
+             align="C", ln=True)
 
     return bytes(pdf.output())
 
