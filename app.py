@@ -866,9 +866,9 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
     import datetime
 
     # Renkler
-    C_NAVY   = (31,  73, 125)   # koyu lacivert – bolum basligi
-    C_BLUE   = (68, 114, 196)   # orta mavi     – tablo basligi
-    C_LIGHT  = (220, 230, 245)  # acik mavi     – tek satirlar
+    C_NAVY   = (31,  73, 125)   # koyu lacivert - bolum basligi
+    C_BLUE   = (68, 114, 196)   # orta mavi     - tablo basligi
+    C_LIGHT  = (220, 230, 245)  # acik mavi     - tek satirlar
     C_WHITE  = (255, 255, 255)
     C_GRAY   = (100, 100, 100)
     C_BLACK  = (30,  30,  30)
@@ -942,7 +942,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
         pdf.ln(3)
 
     # =============================================
-    # SAYFA 1 – KAPAK
+    # SAYFA 1 - KAPAK
     # =============================================
     pdf.add_page()
 
@@ -1005,7 +1005,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
     pdf.set_text_color(*C_BLACK)
 
     # =============================================
-    # SAYFA 2 – GENEL ISTATISTIKLER
+    # SAYFA 2 - GENEL ISTATISTIKLER
     # =============================================
     pdf.add_page()
     bolum_basligi("1. Genel Istatistikler")
@@ -1046,7 +1046,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
         tablo_satiri([lbl] + vals, [lbl_w] + [dcw] * len(num_cols), zebra=(i % 2 == 0))
 
     # =============================================
-    # SAYFA 3 – EN COK IZLENEN VIDEOLAR
+    # SAYFA 3 - EN COK IZLENEN VIDEOLAR
     # =============================================
     pdf.add_page()
     bolum_basligi("3. En Cok Izlenen 10 Video")
@@ -1064,7 +1064,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
     grafik_ekle(fig1, yukseklik=85)
     pdf.ln(2)
 
-    bolum_basligi("4. En Cok Izlenen 5 Video – Detay")
+    bolum_basligi("4. En Cok Izlenen 5 Video - Detay")
     c_no = round(W * 0.06, 2)
     c_gor = round(W * 0.22, 2)
     c_beg = round(W * 0.14, 2)
@@ -1081,7 +1081,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
         )
 
     # =============================================
-    # SAYFA 4 – KATEGORI ANALIZI
+    # SAYFA 4 - KATEGORI ANALIZI
     # =============================================
     pdf.add_page()
     bolum_basligi("5. Kategori Dagilimi")
@@ -1110,7 +1110,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
     grafik_ekle(fig4, yukseklik=72)
 
     # =============================================
-    # SAYFA 5 – KORELASYON
+    # SAYFA 5 - KORELASYON
     # =============================================
     pdf.add_page()
     bolum_basligi("7. Korelasyon Matrisi")
@@ -1133,7 +1133,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
     grafik_ekle(fig3, yukseklik=80)
 
     # =============================================
-    # SAYFA 6 – DEGERLENDIRME
+    # SAYFA 6 - DEGERLENDIRME
     # =============================================
     pdf.add_page()
     bolum_basligi("8. Genel Degerlendirme ve Bulgular")
@@ -1147,7 +1147,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
         ("Goruntulenme Dagilimi",
          "Dagilim sagdan carpik (log-normal) bir yapi sergilemektedir; "
          "kucuk bir grup video izlenmelerin buyuk bolumunu almaktadir."),
-        ("Goruntulenme – Begeni Iliskisi",
+        ("Goruntulenme - Begeni Iliskisi",
          f"Pearson r = {corr_val:.4f}. {iliski} tespit edilmistir. "
          "Begeni sayisi yuksek videolar genellikle daha fazla izlenmektedir."),
         ("Etkilesim",
@@ -1157,7 +1157,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
          f"En fazla trend video '{s(df['kategori'].value_counts().idxmax())}' "
          "kategorisinde yer almaktadir."),
         ("Video Suresi",
-         "5–20 dakika arasi videolar goruntulenme ve etkilesim dengesi "
+         "5-20 dakika arasi videolar goruntulenme ve etkilesim dengesi "
          "acisindan en verimli aralik olarak gozlemlenmistir."),
         ("Kanal Cesitliligi",
          f"Veri setinde {df['kanal'].nunique()} benzersiz kanal bulunmaktadir. "
