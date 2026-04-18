@@ -10,3 +10,4 @@ scipy
 statsmodels
 fpdf2
 kaleido==0.2.1
+openpyxl

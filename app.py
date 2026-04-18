@@ -1214,6 +1214,172 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
     return bytes(pdf.output())
 
 
+def olustur_excel(df, ulke, corr_val, kat_engag):
+    import io
+    import datetime
+    from openpyxl import Workbook
+    from openpyxl.styles import (Font, PatternFill, Alignment,
+                                  Border, Side, numbers)
+    from openpyxl.utils import get_column_letter
+
+    RED   = "B80000"
+    LRED  = "FFEBEB"
+    WHITE = "FFFFFF"
+    GRAY  = "F2F2F2"
+    DARK  = "1E1E1E"
+
+    def hucre_stili(ws, satir, sutun, deger,
+                    kalin=False, bg=None, renk=DARK,
+                    hizalama="left", sayi_fmt=None):
+        hucre = ws.cell(row=satir, column=sutun, value=deger)
+        hucre.font = Font(name="Calibri", bold=kalin,
+                          color=renk, size=10)
+        if bg:
+            hucre.fill = PatternFill("solid", fgColor=bg)
+        hucre.alignment = Alignment(horizontal=hizalama,
+                                    vertical="center", wrap_text=True)
+        ince = Side(style="thin", color="CCCCCC")
+        hucre.border = Border(left=ince, right=ince,
+                              top=ince, bottom=ince)
+        if sayi_fmt:
+            hucre.number_format = sayi_fmt
+        return hucre
+
+    def baslik_satiri(ws, satir, sutunlar):
+        for j, ad in enumerate(sutunlar, 1):
+            hucre_stili(ws, satir, j, ad,
+                        kalin=True, bg=RED, renk=WHITE,
+                        hizalama="center")
+
+    def sutun_genislik(ws, ekstra=4):
+        for col in ws.columns:
+            max_len = 0
+            col_letter = get_column_letter(col[0].column)
+            for cell in col:
+                try:
+                    if cell.value:
+                        max_len = max(max_len, len(str(cell.value)))
+                except Exception:
+                    pass
+            ws.column_dimensions[col_letter].width = min(max_len + ekstra, 50)
+
+    wb = Workbook()
+
+    # ── SAYFA 1: Ham Veri ──────────────────────────────────────
+    ws1 = wb.active
+    ws1.title = "Ham Veri"
+    ws1.freeze_panes = "A2"
+    goster_cols = {
+        "baslik": "Baslik", "kanal": "Kanal", "kategori": "Kategori",
+        "goruntulenme": "Goruntulenme", "begeni": "Begeni",
+        "yorum": "Yorum", "etkilesim_orani": "Etkilesim %",
+        "sure_dk": "Sure (dk)", "yayinlanma_tarihi": "Yayinlanma Tarihi"
+    }
+    mevcut = [c for c in goster_cols if c in df.columns]
+    baslik_satiri(ws1, 1, [goster_cols[c] for c in mevcut])
+    for i, (_, row) in enumerate(df[mevcut].iterrows(), 2):
+        bg = LRED if i % 2 == 0 else WHITE
+        for j, col in enumerate(mevcut, 1):
+            val = row[col]
+            fmt = None
+            if col in ("goruntulenme", "begeni", "yorum"):
+                fmt = "#,##0"
+            elif col == "etkilesim_orani":
+                fmt = "0.0000"
+            elif col == "sure_dk":
+                fmt = "0.0"
+            hucre_stili(ws1, i, j, val, bg=bg, sayi_fmt=fmt)
+    sutun_genislik(ws1)
+
+    # ── SAYFA 2: Genel Istatistikler ──────────────────────────
+    ws2 = wb.create_sheet("Genel Istatistikler")
+    ws2.merge_cells("A1:B1")
+    h = ws2.cell(1, 1, f"YouTube Trend Analizi - {ulke}")
+    h.font = Font(name="Calibri", bold=True, size=13, color=WHITE)
+    h.fill = PatternFill("solid", fgColor=RED)
+    h.alignment = Alignment(horizontal="center", vertical="center")
+    ws2.row_dimensions[1].height = 22
+
+    baslik_satiri(ws2, 2, ["Metrik", "Deger"])
+    istatler = [
+        ("Bolge",                  ulke),
+        ("Rapor Tarihi",           datetime.date.today().strftime("%d.%m.%Y")),
+        ("Video Sayisi",           len(df)),
+        ("Toplam Goruntulenme",    df["goruntulenme"].sum()),
+        ("Ort. Goruntulenme",      round(df["goruntulenme"].mean(), 0)),
+        ("Medyan Goruntulenme",    round(df["goruntulenme"].median(), 0)),
+        ("Maks. Goruntulenme",     df["goruntulenme"].max()),
+        ("Toplam Begeni",          df["begeni"].sum()),
+        ("Ort. Begeni",            round(df["begeni"].mean(), 0)),
+        ("Toplam Yorum",           df["yorum"].sum()),
+        ("Ort. Etkilesim %",       round(df["etkilesim_orani"].mean(), 4)),
+        ("En Populer Kategori",    df["kategori"].value_counts().idxmax()),
+        ("Benzersiz Kanal",        df["kanal"].nunique()),
+        ("Benzersiz Kategori",     df["kategori"].nunique()),
+        ("Pearson r (gor~beg)",    round(corr_val, 4)),
+    ]
+    for i, (k, v) in enumerate(istatler, 3):
+        bg = LRED if i % 2 == 0 else WHITE
+        hucre_stili(ws2, i, 1, k, kalin=True, bg=bg)
+        fmt = "#,##0" if isinstance(v, (int, float)) and abs(v) > 100 else None
+        hucre_stili(ws2, i, 2, v, bg=bg, sayi_fmt=fmt)
+    ws2.column_dimensions["A"].width = 28
+    ws2.column_dimensions["B"].width = 24
+
+    # ── SAYFA 3: Betimsel Istatistikler ───────────────────────
+    ws3 = wb.create_sheet("Betimsel Istatistikler")
+    num_cols = ["goruntulenme", "begeni", "yorum", "etkilesim_orani", "sure_dk"]
+    col_labels = ["Goruntulenme", "Begeni", "Yorum", "Etkilesim %", "Sure (dk)"]
+    baslik_satiri(ws3, 1, [""] + col_labels)
+    desc = df[num_cols].describe()
+    stat_map = [("Ortalama","mean"),("Std Sapma","std"),("Minimum","min"),
+                ("Q1 (25%)","25%"),("Medyan","50%"),("Q3 (75%)","75%"),("Maksimum","max")]
+    for i, (lbl, idx) in enumerate(stat_map, 2):
+        bg = LRED if i % 2 == 0 else WHITE
+        hucre_stili(ws3, i, 1, lbl, kalin=True, bg=bg)
+        for j, c in enumerate(num_cols, 2):
+            hucre_stili(ws3, i, j, round(desc.loc[idx, c], 2), bg=bg, sayi_fmt="#,##0.00")
+    sutun_genislik(ws3)
+
+    # ── SAYFA 4: Kategori Analizi ─────────────────────────────
+    ws4 = wb.create_sheet("Kategori Analizi")
+    kat_say = df["kategori"].value_counts().reset_index()
+    kat_say.columns = ["Kategori", "Video Sayisi"]
+    kat_say["Yuzde %"] = (kat_say["Video Sayisi"] / len(df) * 100).round(2)
+    kat_engag2 = kat_engag.copy()
+    kat_engag2.columns = ["Kategori", "Ort. Etkilesim %"]
+    kat_engag2["Ort. Etkilesim %"] = kat_engag2["Ort. Etkilesim %"].round(4)
+    merged = kat_say.merge(kat_engag2, on="Kategori", how="left")
+    baslik_satiri(ws4, 1, list(merged.columns))
+    for i, (_, row) in enumerate(merged.iterrows(), 2):
+        bg = LRED if i % 2 == 0 else WHITE
+        for j, val in enumerate(row, 1):
+            fmt = "#,##0" if j == 2 else ("0.00" if j == 3 else ("0.0000" if j == 4 else None))
+            hucre_stili(ws4, i, j, val, bg=bg, sayi_fmt=fmt)
+    sutun_genislik(ws4)
+
+    # ── SAYFA 5: Top 10 Video ─────────────────────────────────
+    ws5 = wb.create_sheet("Top 10 Video")
+    top10 = df.nlargest(10, "goruntulenme")[
+        ["baslik", "kanal", "kategori", "goruntulenme", "begeni", "yorum", "etkilesim_orani"]
+    ].reset_index(drop=True)
+    baslik_satiri(ws5, 1, ["#", "Baslik", "Kanal", "Kategori",
+                            "Goruntulenme", "Begeni", "Yorum", "Etkilesim %"])
+    for i, (_, row) in enumerate(top10.iterrows(), 2):
+        bg = LRED if i % 2 == 0 else WHITE
+        vals = [i - 1, row["baslik"], row["kanal"], row["kategori"],
+                row["goruntulenme"], row["begeni"], row["yorum"],
+                round(row["etkilesim_orani"], 4)]
+        fmts = [None, None, None, None, "#,##0", "#,##0", "#,##0", "0.0000"]
+        for j, (v, f) in enumerate(zip(vals, fmts), 1):
+            hucre_stili(ws5, i, j, v, bg=bg, sayi_fmt=f)
+    sutun_genislik(ws5)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
 if st.button("PDF Raporu Olustur ve Indir", type="primary"):
     with st.spinner("PDF hazirlaniyor..."):
         try:
@@ -1228,4 +1394,20 @@ if st.button("PDF Raporu Olustur ve Indir", type="primary"):
         except Exception as e:
             import traceback
             st.error(f"PDF olusturulamadi: {e}")
+            st.code(traceback.format_exc())
+
+if st.button("Excel Raporu Olustur ve Indir", type="secondary"):
+    with st.spinner("Excel hazirlaniyor..."):
+        try:
+            excel_bytes = olustur_excel(df, ulke_adi, corr_val, kat_engag)
+            st.download_button(
+                label="Excel Indir (.xlsx)",
+                data=excel_bytes,
+                file_name=f"youtube_trend_{ulke_adi.lower()}_rapor.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            st.success("Excel hazir! Yukaridaki butona tiklayin.")
+        except Exception as e:
+            import traceback
+            st.error(f"Excel olusturulamadi: {e}")
             st.code(traceback.format_exc())
