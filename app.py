@@ -846,11 +846,17 @@ st.markdown("Analiz sonuclarini PDF olarak indirmek icin asagidaki butona tiklay
 
 def ascii_yap(metin: str) -> str:
     """Turkce ve diger Unicode karakterleri ASCII karsiligina donusturur."""
+    import unicodedata
+    # Once Turkce harfler (unicodedata normalize edemez bunlari)
     tablo = str.maketrans(
-        "çÇşŞğĞüÜöÖıİâÂêÊîÎôÔûÛàèìòùÀÈÌÒÙáéíóúÁÉÍÓÚ",
-        "cCsSgGuUoOiIaAeEiIoOuUaeiouAEIOUaeiouAEIOU"
+        "çÇşŞğĞüÜöÖıİ",
+        "cCsSgGuUoOiI"
     )
-    return metin.translate(tablo)
+    metin = metin.translate(tablo)
+    # Kalanlar icin NFKD normalize + ASCII encode (hata yoksay)
+    metin = unicodedata.normalize("NFKD", metin)
+    metin = metin.encode("ascii", errors="ignore").decode("ascii")
+    return metin
 
 def grafik_png(fig, w=180, h=90):
     """Plotly figuru PNG byte dizisine cevirir."""
