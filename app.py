@@ -864,10 +864,12 @@ def grafik_png(fig, w=180, h=90):
 
 def olustur_pdf(df, ulke, corr_val, kat_engag):
     pdf = FPDF()
+    pdf.set_margins(15, 15, 15)
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
     s = ascii_yap  # kisaltma
+    W = pdf.epw  # kullanilabilir sayfa genisligi (margin sonrasi)
 
     # Baslik
     pdf.set_font("Helvetica", "B", 18)
@@ -890,7 +892,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
         ("Benzersiz Kanal",       str(df['kanal'].nunique())),
         ("Pearson r (gor~beg)",   f"{corr_val:.4f}"),
     ]
-    col_w = 90
+    col_w = W / 2
     for k, v in satirlar:
         pdf.cell(col_w, 7, k, border=1)
         pdf.cell(col_w, 7, v, border=1, ln=True)
@@ -903,7 +905,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
     num_cols = ["goruntulenme", "begeni", "yorum", "etkilesim_orani", "sure_dk"]
     col_names = ["Goruntulenme", "Begeni", "Yorum", "Etkilesim %", "Sure (dk)"]
     stat_labels = ["Ort.", "Std", "Min", "Q1", "Medyan", "Q3", "Max"]
-    cw = 180 // (len(col_names) + 1)
+    cw = W / (len(col_names) + 1)
     pdf.cell(cw, 6, "", border=1)
     for cn in col_names:
         pdf.cell(cw, 6, cn[:10], border=1)
@@ -920,16 +922,17 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
     pdf.set_font("Helvetica", "B", 13)
     pdf.cell(0, 8, "En Cok Izlenen 5 Video", ln=True)
     pdf.set_font("Helvetica", "", 9)
-    pdf.cell(10, 6, "No", border=1)
-    pdf.cell(95, 6, "Baslik", border=1)
-    pdf.cell(45, 6, "Kanal", border=1)
-    pdf.cell(30, 6, "Goruntulenme", border=1, ln=True)
+    c1, c2, c3, c4 = W*0.05, W*0.50, W*0.25, W*0.20
+    pdf.cell(c1, 6, "No", border=1)
+    pdf.cell(c2, 6, "Baslik", border=1)
+    pdf.cell(c3, 6, "Kanal", border=1)
+    pdf.cell(c4, 6, "Goruntulenme", border=1, ln=True)
     top5 = df.nlargest(5, "goruntulenme")[["baslik", "kanal", "goruntulenme"]].reset_index(drop=True)
     for i, row in top5.iterrows():
-        pdf.cell(10, 6, str(i+1), border=1)
-        pdf.cell(95, 6, s(row["baslik"][:50]), border=1)
-        pdf.cell(45, 6, s(row["kanal"][:22]), border=1)
-        pdf.cell(30, 6, f"{row['goruntulenme']:,}", border=1, ln=True)
+        pdf.cell(c1, 6, str(i+1), border=1)
+        pdf.cell(c2, 6, s(row["baslik"][:55]), border=1)
+        pdf.cell(c3, 6, s(row["kanal"][:25]), border=1)
+        pdf.cell(c4, 6, f"{row['goruntulenme']:,}", border=1, ln=True)
     pdf.ln(5)
 
     # Grafik 1: Top 10 goruntulenme
@@ -945,7 +948,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
     img1 = grafik_png(fig1)
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
         f.write(img1); f1path = f.name
-    pdf.image(f1path, x=10, w=180)
+    pdf.image(f1path, x=pdf.l_margin, w=W)
     pdf.ln(3)
 
     # Grafik 2: Kategori pasta
@@ -961,7 +964,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
     img2 = grafik_png(fig2)
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
         f.write(img2); f2path = f.name
-    pdf.image(f2path, x=10, w=180)
+    pdf.image(f2path, x=pdf.l_margin, w=W)
     pdf.ln(3)
 
     # Grafik 3: Korelasyon matrisi
@@ -976,7 +979,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
     img3 = grafik_png(fig3)
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
         f.write(img3); f3path = f.name
-    pdf.image(f3path, x=10, w=180)
+    pdf.image(f3path, x=pdf.l_margin, w=W)
     pdf.ln(3)
 
     # Grafik 4: Etkilesim orani bar
@@ -990,7 +993,7 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
     img4 = grafik_png(fig4)
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
         f.write(img4); f4path = f.name
-    pdf.image(f4path, x=10, w=180)
+    pdf.image(f4path, x=pdf.l_margin, w=W)
 
     # Son sayfa: degerlendirme
     pdf.add_page()
