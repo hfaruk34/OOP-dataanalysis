@@ -169,6 +169,39 @@ st.markdown(
 )
 
 # ─────────────────────────────────────────────────────────────
+#  Veri Seti (en uste)
+# ─────────────────────────────────────────────────────────────
+st.divider()
+st.subheader("Veri Seti")
+st.caption("YouTube Data API v3 ile cekilen ham veri. Her satir bir trend videoyu temsil eder.")
+
+df_display = df.drop(columns=["video_id"]).rename(columns={
+    "baslik": "Baslik",
+    "kanal": "Kanal",
+    "kategori": "Kategori",
+    "goruntulenme": "Goruntulenme",
+    "begeni": "Begeni",
+    "yorum": "Yorum",
+    "etkilesim_orani": "Etkilesim %",
+    "begeni_orani": "Begeni %",
+    "sure_dk": "Sure (dk)",
+    "yayın_tarihi": "Yayin Tarihi",
+    "yayın_saati": "Saat",
+    "tag_sayisi": "Tag",
+})
+df_display.index = range(1, len(df_display) + 1)
+df_display.index.name = "No"
+st.dataframe(df_display, use_container_width=True, hide_index=False, height=320)
+
+csv_bytes = df_display.to_csv(index=True).encode("utf-8")
+st.download_button(
+    label="Veri setini CSV olarak indir",
+    data=csv_bytes,
+    file_name=f"youtube_trend_{ulke_adi.lower()}.csv",
+    mime="text/csv",
+)
+
+# ─────────────────────────────────────────────────────────────
 #  Hizli Istatistikler
 # ─────────────────────────────────────────────────────────────
 st.divider()
@@ -301,52 +334,9 @@ st.divider()
 
 
 # ─────────────────────────────────────────────────────────────
-#  BOLUM 1 — Ham Veri Seti
+#  BOLUM 1 — Betimsel Istatistikler
 # ─────────────────────────────────────────────────────────────
-st.header("1. Veri Seti")
-
-st.markdown(
-    """
-    Asagidaki tablo YouTube Data API v3 araciligiyla cekilen ham veri setidir.
-    Her satir bir trend videoyu temsil etmekte olup goruntulenme, begeni, yorum sayisi,
-    etkilesim orani, video suresi ve kategori gibi degiskenler yer almaktadir.
-    Analiz boyunca bu degiskenler arasindaki iliskiler farkli istatistiksel yontemlerle incelenecektir.
-    """
-)
-
-df_display = df.drop(columns=["video_id"]).rename(columns={
-    "baslik": "Baslik",
-    "kanal": "Kanal",
-    "kategori": "Kategori",
-    "goruntulenme": "Goruntulenme",
-    "begeni": "Begeni",
-    "yorum": "Yorum",
-    "etkilesim_orani": "Etkilesim %",
-    "begeni_orani": "Begeni %",
-    "sure_dk": "Sure (dk)",
-    "yayın_tarihi": "Yayin Tarihi",
-    "yayın_saati": "Saat",
-    "tag_sayisi": "Tag",
-})
-df_display.index = range(1, len(df_display) + 1)
-df_display.index.name = "No"
-st.dataframe(df_display, use_container_width=True, hide_index=False, height=320)
-
-csv_bytes = df_display.to_csv(index=True).encode("utf-8")
-st.download_button(
-    label="Veri setini CSV olarak indir",
-    data=csv_bytes,
-    file_name=f"youtube_trend_{ulke_adi.lower()}.csv",
-    mime="text/csv",
-)
-
-st.divider()
-
-
-# ─────────────────────────────────────────────────────────────
-#  BOLUM 2 — Betimsel Istatistikler
-# ─────────────────────────────────────────────────────────────
-st.header("2. Betimsel Istatistikler")
+st.header("1. Betimsel Istatistikler")
 
 st.markdown(
     """
@@ -376,7 +366,7 @@ st.divider()
 # ─────────────────────────────────────────────────────────────
 #  BOLUM 3 — Kategori Dagilimi
 # ─────────────────────────────────────────────────────────────
-st.header("3. Kategori Dagilimi")
+st.header("2. Kategori Dagilimi")
 
 st.markdown(
     """
@@ -422,7 +412,7 @@ st.divider()
 # ─────────────────────────────────────────────────────────────
 #  BOLUM 4 — Goruntulenme Dagilimi (Histogram + Box Plot)
 # ─────────────────────────────────────────────────────────────
-st.header("4. Goruntulenme Dagilimi")
+st.header("3. Goruntulenme Dagilimi")
 
 st.markdown(
     """
@@ -481,7 +471,7 @@ st.divider()
 # ─────────────────────────────────────────────────────────────
 #  BOLUM 5 — Begeni - Goruntulenme Iliskisi
 # ─────────────────────────────────────────────────────────────
-st.header("5. Begeni ile Goruntulenme Arasindaki Iliski")
+st.header("4. Begeni ile Goruntulenme Arasindaki Iliski")
 
 st.markdown(
     """
@@ -528,7 +518,7 @@ st.divider()
 # ─────────────────────────────────────────────────────────────
 #  BOLUM 6 — Etkilesim Orani Analizi
 # ─────────────────────────────────────────────────────────────
-st.header("6. Etkilesim Orani Analizi")
+st.header("5. Etkilesim Orani Analizi")
 
 st.markdown(
     """
@@ -585,7 +575,7 @@ st.divider()
 # ─────────────────────────────────────────────────────────────
 #  BOLUM 7 — Korelasyon Matrisi (Isil Harita)
 # ─────────────────────────────────────────────────────────────
-st.header("7. Degiskenler Arasi Korelasyon Matrisi")
+st.header("6. Degiskenler Arasi Korelasyon Matrisi")
 
 st.markdown(
     """
@@ -627,7 +617,7 @@ st.divider()
 # ─────────────────────────────────────────────────────────────
 #  BOLUM 8 — Video Suresi Analizi
 # ─────────────────────────────────────────────────────────────
-st.header("8. Video Suresi ve Performans")
+st.header("7. Video Suresi ve Performans")
 
 st.markdown(
     """
@@ -684,7 +674,7 @@ st.divider()
 # ─────────────────────────────────────────────────────────────
 #  BOLUM 9 — Kanal Performansi
 # ─────────────────────────────────────────────────────────────
-st.header("9. Kanal Bazli Performans")
+st.header("8. Kanal Bazli Performans")
 
 st.markdown(
     """
@@ -733,7 +723,7 @@ st.divider()
 # ─────────────────────────────────────────────────────────────
 #  BOLUM 10 — Yayin Saati Analizi
 # ─────────────────────────────────────────────────────────────
-st.header("10. Yayin Saati ve Goruntulenme Iliskisi")
+st.header("9. Yayin Saati ve Goruntulenme Iliskisi")
 
 st.markdown(
     """
@@ -785,7 +775,7 @@ st.divider()
 # ─────────────────────────────────────────────────────────────
 #  BOLUM 11 — Genel Degerlendirme
 # ─────────────────────────────────────────────────────────────
-st.header("11. Genel Degerlendirme")
+st.header("10. Genel Degerlendirme")
 
 top3 = df.nlargest(3, "goruntulenme")[["baslik", "kanal", "goruntulenme", "etkilesim_orani"]]
 en_etkilesim = df.nlargest(3, "etkilesim_orani")[["baslik", "kanal", "etkilesim_orani"]]
