@@ -676,53 +676,9 @@ st.divider()
 
 
 # ─────────────────────────────────────────────────────────────
-#  BOLUM 11 — Kelime Bulutu
+#  BOLUM 11 — Genel Degerlendirme
 # ─────────────────────────────────────────────────────────────
-st.header("11. Baslik Kelime Bulutu")
-
-st.markdown(
-    """
-    Trend video basliklarinda yer alan kelimelerin frekansi incelendiginde,
-    izleyici dikkatini ceken anahtar temaları ve guncel konulari tespit etmek mumkun olmaktadir.
-    Buyuk gorunen kelimeler baslik metinlerinde daha sik gecmekte; bu da icerik ureticilerinin
-    hangi konulari on plana cikardigi ve hangi kelimelerin tiklama oranini artirdigi hakkinda
-    bilgi sunmaktadir.
-    """
-)
-
-stop_words = {
-    "ve", "ile", "bir", "bu", "da", "de", "ki", "ne", "mi", "ya",
-    "bu", "o", "ben", "sen", "biz", "siz", "icin", "gibi", "ama",
-    "the", "a", "an", "in", "of", "to", "and", "for", "on", "is",
-    "it", "at", "be", "as", "by", "or", "an", "if",
-}
-
-all_titles = " ".join(df["baslik"].tolist()).lower()
-words = re.findall(r"[a-zçşğüöıa-z]{3,}", all_titles)
-freq = {}
-for w in words:
-    if w not in stop_words:
-        freq[w] = freq.get(w, 0) + 1
-
-if freq:
-    wc = WordCloud(
-        width=1000, height=400, background_color="white",
-        colormap="tab10", max_words=100, prefer_horizontal=0.8,
-    ).generate_from_frequencies(freq)
-    fig_wc, ax = plt.subplots(figsize=(12, 4.5))
-    ax.imshow(wc, interpolation="bilinear")
-    ax.axis("off")
-    fig_wc.tight_layout(pad=0)
-    st.pyplot(fig_wc)
-    plt.close(fig_wc)
-
-st.divider()
-
-
-# ─────────────────────────────────────────────────────────────
-#  BOLUM 12 — Genel Degerlendirme
-# ─────────────────────────────────────────────────────────────
-st.header("12. Genel Degerlendirme")
+st.header("11. Genel Degerlendirme")
 
 top3 = df.nlargest(3, "goruntulenme")[["baslik", "kanal", "goruntulenme", "etkilesim_orani"]]
 en_etkilesim = df.nlargest(3, "etkilesim_orani")[["baslik", "kanal", "etkilesim_orani"]]
