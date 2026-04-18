@@ -892,27 +892,33 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
         ("Benzersiz Kanal",       str(df['kanal'].nunique())),
         ("Pearson r (gor~beg)",   f"{corr_val:.4f}"),
     ]
-    col_w = W / 2
+    col_w = round(W / 2, 2)
     for k, v in satirlar:
+        pdf.set_x(pdf.l_margin)
         pdf.cell(col_w, 7, k, border=1)
         pdf.cell(col_w, 7, v, border=1, ln=True)
     pdf.ln(5)
 
     # Betimsel istatistik tablosu
     pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, "Betimsel Istatistikler", ln=True)
+    pdf.set_x(pdf.l_margin)
+    pdf.cell(W, 8, "Betimsel Istatistikler", ln=True)
     pdf.set_font("Helvetica", "", 9)
     num_cols = ["goruntulenme", "begeni", "yorum", "etkilesim_orani", "sure_dk"]
     col_names = ["Goruntulenme", "Begeni", "Yorum", "Etkilesim %", "Sure (dk)"]
     stat_labels = ["Ort.", "Std", "Min", "Q1", "Medyan", "Q3", "Max"]
-    cw = W / (len(col_names) + 1)
-    pdf.cell(cw, 6, "", border=1)
+    n_cols = len(col_names) + 1
+    cw = round(W / n_cols, 2)
+    lw = round(W - cw * len(col_names), 2)  # son sutun floating point kalanini alir
+    pdf.set_x(pdf.l_margin)
+    pdf.cell(lw, 6, "", border=1)
     for cn in col_names:
         pdf.cell(cw, 6, cn[:10], border=1)
     pdf.ln()
     desc = df[num_cols].describe()
     for lbl, idx in zip(stat_labels, ["mean","std","min","25%","50%","75%","max"]):
-        pdf.cell(cw, 6, lbl, border=1)
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(lw, 6, lbl, border=1)
         for c in num_cols:
             pdf.cell(cw, 6, f"{desc.loc[idx, c]:,.1f}", border=1)
         pdf.ln()
@@ -920,15 +926,21 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
 
     # En cok izlenen 5 video
     pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, "En Cok Izlenen 5 Video", ln=True)
+    pdf.set_x(pdf.l_margin)
+    pdf.cell(W, 8, "En Cok Izlenen 5 Video", ln=True)
     pdf.set_font("Helvetica", "", 9)
-    c1, c2, c3, c4 = W*0.05, W*0.50, W*0.25, W*0.20
+    c1 = round(W * 0.05, 2)
+    c4 = round(W * 0.20, 2)
+    c3 = round(W * 0.25, 2)
+    c2 = round(W - c1 - c3 - c4, 2)  # kalan genislik
+    pdf.set_x(pdf.l_margin)
     pdf.cell(c1, 6, "No", border=1)
     pdf.cell(c2, 6, "Baslik", border=1)
     pdf.cell(c3, 6, "Kanal", border=1)
     pdf.cell(c4, 6, "Goruntulenme", border=1, ln=True)
     top5 = df.nlargest(5, "goruntulenme")[["baslik", "kanal", "goruntulenme"]].reset_index(drop=True)
     for i, row in top5.iterrows():
+        pdf.set_x(pdf.l_margin)
         pdf.cell(c1, 6, str(i+1), border=1)
         pdf.cell(c2, 6, s(row["baslik"][:55]), border=1)
         pdf.cell(c3, 6, s(row["kanal"][:25]), border=1)
@@ -1010,7 +1022,8 @@ def olustur_pdf(df, ulke, corr_val, kat_engag):
         "- Orta uzunluktaki videolar (5-20 dk) goruntulenme acisindan en verimli aralik.",
     ]
     for b in bulgular:
-        pdf.multi_cell(0, 7, b)
+        pdf.set_x(pdf.l_margin)
+        pdf.multi_cell(W, 7, b)
     pdf.ln(3)
     pdf.set_font("Helvetica", "I", 9)
     pdf.cell(0, 6, "Kaynak: YouTube Data API v3", ln=True, align="R")
@@ -1030,4 +1043,6 @@ if st.button("PDF Raporu Olustur ve Indir", type="primary"):
             )
             st.success("PDF hazir! Yukaridaki butona tiklayin.")
         except Exception as e:
+            import traceback
             st.error(f"PDF olusturulamadi: {e}")
+            st.code(traceback.format_exc())
