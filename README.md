@@ -62,10 +62,6 @@ OOP-DataAnalysis-Project/
 │   │   └── channel.py
 │   ├── services/
 │   │   ├── data_cleaner.py
-│   │   ├── video_analyzer.py
-│   │   ├── channel_analyzer.py
-│   │   ├── text_analyzer.py
-│   │   └── trend_analyzer.py
 │   └── utils/
 │       └── exceptions.py
 ├── app.py
@@ -83,12 +79,30 @@ cp .env.example .env
 streamlit run app.py
 ```
 
-## Uygulama Özellikleri
+## Uygulama İçeriği (Gerçek `app.py`)
 
-| Sekme | İşlev |
-|---|---|
-| Video Analizi | ID veya URL ile video istatistikleri ve etkileşim oranı |
-| Kanal Analizi | Kanal ID, @handle veya URL ile karşılaştırmalı analiz |
-| Kelime ve Etiket | Başlık/etiket analizi ve wordcloud |
-| Trend Videoları | Ülke/kategori bazlı trend listeleme ve görselleştirme |
-| Global En Çok İzlenen | `viewCount` sıralamasına göre global liste |
+Bu proje, Streamlit ile yazılmış tek sayfalık bir **YouTube trend video analizi** uygulamasıdır.
+
+### Veri Kaynağı ve Seçim
+
+- **Veri kaynağı**: YouTube Data API v3
+- **Filtreler**: Ülke (region) ve video sayısı
+
+### Analiz Bölümleri
+
+`app.py` içinde yer alan başlıca analiz ve görselleştirme bölümleri:
+
+- **Veri Seti**: Çekilen veriyi tabloda gösterme + CSV indirme
+- **Genel İstatistikler**: Toplam/ortalama metrik kartları
+- **Hızlı Grafikler**: Top 10 izlenme, top 10 etkileşim, kategori ortalamaları vb.
+- **1. Betimsel İstatistikler**
+- **2. Kategori Dağılımı**
+- **3. Görüntülenme Dağılımı** (histogram/box + log ölçekli histogram)
+- **4. Beğeni ile Görüntülenme Arasındaki İlişki** (scatter + OLS trendline)
+- **5. Etkileşim Oranı Analizi** (bar + violin)
+- **6. Değişkenler Arası Korelasyon Matrisi** (heatmap)
+- **7. Video Süresi ve Performans**
+- **8. Kanal Bazlı Performans**
+- **9. Yayın Saati ve Görüntülenme İlişkisi**
+- **10. Genel Değerlendirme**
+- **PDF Raporu** ve **Excel Raporu (.xlsx)** indirme
