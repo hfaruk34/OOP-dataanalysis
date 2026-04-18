@@ -1218,8 +1218,7 @@ def olustur_excel(df, ulke, corr_val, kat_engag):
     import io
     import datetime
     from openpyxl import Workbook
-    from openpyxl.styles import (Font, PatternFill, Alignment,
-                                  Border, Side, numbers)
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
 
     RED   = "B80000"
