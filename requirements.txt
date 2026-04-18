@@ -1,0 +1,10 @@
+google-api-python-client
+streamlit
+pandas
+numpy
+plotly
+python-dotenv
+wordcloud
+matplotlib
+scipy
+statsmodels
