@@ -203,69 +203,99 @@ st.divider()
 # ─── Hizli Grafikler ───────────────────────────────────────
 st.subheader("Hizli Grafikler")
 
-hg1, hg2, hg3 = st.columns(3)
+# Grafik 1: En cok izlenen 10 video
+top10 = df.nlargest(10, "goruntulenme")[["baslik", "kanal", "goruntulenme"]].sort_values("goruntulenme")
+fig_top10 = px.bar(
+    top10, x="goruntulenme", y="baslik", orientation="h",
+    title="En Cok Izlenen 10 Video",
+    labels={"goruntulenme": "Goruntulenme", "baslik": "Video", "kanal": "Kanal"},
+    color="goruntulenme", color_continuous_scale="Blues",
+    hover_data={"kanal": True},
+    text="goruntulenme",
+)
+fig_top10.update_traces(texttemplate="%{text:,}", textposition="outside")
+fig_top10.update_layout(coloraxis_showscale=False, margin=dict(t=50, b=20, l=10, r=80), height=420)
+st.plotly_chart(fig_top10, use_container_width=True)
 
-with hg1:
-    top10 = df.nlargest(10, "goruntulenme")[["baslik", "goruntulenme"]].sort_values("goruntulenme")
-    fig_top10 = px.bar(
-        top10, x="goruntulenme", y="baslik", orientation="h",
-        title="En Cok Izlenen 10 Video",
-        labels={"goruntulenme": "Goruntulenme", "baslik": ""},
-        color="goruntulenme", color_continuous_scale="Blues",
-    )
-    fig_top10.update_layout(coloraxis_showscale=False, margin=dict(t=40, b=10, l=5, r=10), height=350)
-    st.plotly_chart(fig_top10, use_container_width=True)
+# Grafik 2: En yuksek etkilesim oranlı 10 video
+top10_eng = df.nlargest(10, "etkilesim_orani")[["baslik", "kanal", "etkilesim_orani"]].sort_values("etkilesim_orani")
+fig_eng10 = px.bar(
+    top10_eng, x="etkilesim_orani", y="baslik", orientation="h",
+    title="En Yuksek Etkilesim Oranlı 10 Video",
+    labels={"etkilesim_orani": "Etkilesim %", "baslik": "Video", "kanal": "Kanal"},
+    color="etkilesim_orani", color_continuous_scale="Greens",
+    hover_data={"kanal": True},
+    text="etkilesim_orani",
+)
+fig_eng10.update_traces(texttemplate="%{text:.3f}%", textposition="outside")
+fig_eng10.update_layout(coloraxis_showscale=False, margin=dict(t=50, b=20, l=10, r=80), height=420)
+st.plotly_chart(fig_eng10, use_container_width=True)
 
-with hg2:
-    kat_ort = df.groupby("kategori")["goruntulenme"].mean().sort_values(ascending=False).reset_index()
-    kat_ort.columns = ["Kategori", "Ort. Goruntulenme"]
-    fig_kat_ort = px.bar(
-        kat_ort, x="Kategori", y="Ort. Goruntulenme",
-        title="Kategoriye Gore Ort. Goruntulenme",
-        color="Ort. Goruntulenme", color_continuous_scale="Oranges",
-    )
-    fig_kat_ort.update_layout(
-        coloraxis_showscale=False,
-        xaxis_tickangle=-35,
-        margin=dict(t=40, b=60, l=5, r=10),
-        height=350,
-    )
-    st.plotly_chart(fig_kat_ort, use_container_width=True)
+# Grafik 3: Kategoriye gore ortalama goruntulenme
+kat_ort = df.groupby("kategori")["goruntulenme"].mean().sort_values(ascending=False).reset_index()
+kat_ort.columns = ["Kategori", "Ort. Goruntulenme"]
+fig_kat_ort = px.bar(
+    kat_ort, x="Kategori", y="Ort. Goruntulenme",
+    title="Kategoriye Gore Ortalama Goruntulenme",
+    labels={"Kategori": "Kategori", "Ort. Goruntulenme": "Ort. Goruntulenme"},
+    color="Ort. Goruntulenme", color_continuous_scale="Oranges",
+    text="Ort. Goruntulenme",
+)
+fig_kat_ort.update_traces(texttemplate="%{text:,.0f}", textposition="outside")
+fig_kat_ort.update_layout(
+    coloraxis_showscale=False,
+    xaxis_tickangle=-30,
+    margin=dict(t=50, b=80, l=10, r=20),
+    height=420,
+)
+st.plotly_chart(fig_kat_ort, use_container_width=True)
 
-with hg3:
-    top10_eng = df.nlargest(10, "etkilesim_orani")[["baslik", "etkilesim_orani"]].sort_values("etkilesim_orani")
-    fig_eng10 = px.bar(
-        top10_eng, x="etkilesim_orani", y="baslik", orientation="h",
-        title="En Yuksek Etkilesim 10 Video",
-        labels={"etkilesim_orani": "Etkilesim %", "baslik": ""},
-        color="etkilesim_orani", color_continuous_scale="Greens",
-    )
-    fig_eng10.update_layout(coloraxis_showscale=False, margin=dict(t=40, b=10, l=5, r=10), height=350)
-    st.plotly_chart(fig_eng10, use_container_width=True)
+# Grafik 4: Begeni sayisi dagilimi
+fig_begeni_hist = px.histogram(
+    df, x="begeni", nbins=15,
+    title="Begeni Sayisi Dagilimi",
+    labels={"begeni": "Begeni Sayisi", "count": "Video Sayisi"},
+    color_discrete_sequence=["#f783ac"],
+)
+fig_begeni_hist.update_layout(bargap=0.05, margin=dict(t=50, b=40), height=400)
+st.plotly_chart(fig_begeni_hist, use_container_width=True)
 
-hg4, hg5 = st.columns(2)
+# Grafik 5: Kategoriye gore yorum box plot
+fig_yorum_box = px.box(
+    df, x="kategori", y="yorum",
+    title="Kategoriye Gore Yorum Sayisi Dagilimi",
+    labels={"yorum": "Yorum Sayisi", "kategori": "Kategori"},
+    color="kategori",
+    color_discrete_sequence=px.colors.qualitative.Pastel,
+    points="outliers",
+)
+fig_yorum_box.update_layout(
+    showlegend=False,
+    xaxis_tickangle=-30,
+    margin=dict(t=50, b=80),
+    height=420,
+)
+st.plotly_chart(fig_yorum_box, use_container_width=True)
 
-with hg4:
-    fig_begeni_hist = px.histogram(
-        df, x="begeni", nbins=15,
-        title="Begeni Sayisi Dagilimi",
-        labels={"begeni": "Begeni", "count": "Video Sayisi"},
-        color_discrete_sequence=["#f783ac"],
-    )
-    fig_begeni_hist.update_layout(bargap=0.05, margin=dict(t=40, b=30), height=300)
-    st.plotly_chart(fig_begeni_hist, use_container_width=True)
-
-with hg5:
-    fig_yorum_box = px.box(
-        df, x="kategori", y="yorum",
-        title="Kategoriye Gore Yorum Dagilimi",
-        labels={"yorum": "Yorum Sayisi", "kategori": "Kategori"},
-        color="kategori",
-        color_discrete_sequence=px.colors.qualitative.Pastel,
-        points=False,
-    )
-    fig_yorum_box.update_layout(showlegend=False, xaxis_tickangle=-35, margin=dict(t=40, b=60), height=300)
-    st.plotly_chart(fig_yorum_box, use_container_width=True)
+# Grafik 6: Kanal bazli toplam goruntulenme (en cok izlenen 15 kanal)
+kanal_hizli = (
+    df.groupby("kanal")["goruntulenme"].sum()
+    .sort_values(ascending=False)
+    .head(15)
+    .reset_index()
+)
+kanal_hizli.columns = ["Kanal", "Toplam Goruntulenme"]
+fig_kanal_hizli = px.bar(
+    kanal_hizli.sort_values("Toplam Goruntulenme"),
+    x="Toplam Goruntulenme", y="Kanal", orientation="h",
+    title="En Cok Izlenen 15 Kanal (Toplam Goruntulenme)",
+    labels={"Toplam Goruntulenme": "Toplam Goruntulenme", "Kanal": ""},
+    color="Toplam Goruntulenme", color_continuous_scale="Purples",
+    text="Toplam Goruntulenme",
+)
+fig_kanal_hizli.update_traces(texttemplate="%{text:,}", textposition="outside")
+fig_kanal_hizli.update_layout(coloraxis_showscale=False, margin=dict(t=50, b=20, l=10, r=80), height=500)
+st.plotly_chart(fig_kanal_hizli, use_container_width=True)
 
 st.divider()
 
