@@ -90,7 +90,7 @@ Bu proje, Streamlit ile yazılmış tek sayfalık bir **YouTube trend video anal
 
 ### Analiz Bölümleri
 
-`app.py` içinde yer alan başlıca analiz ve görselleştirme bölümleri:
+`app.py` içinde yer alan başlıca analiz ve görselleştirmenin bölümleri:
 
 - **Veri Seti**: Çekilen veriyi tabloda gösterme + CSV indirme
 - **Genel İstatistikler**: Toplam/ortalama metrik kartları
