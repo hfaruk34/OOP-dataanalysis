@@ -1,4 +1,4 @@
-# OOP-DataAnalysis-Project
+# OOP-YouTube-DataAnalysis-Project
 
 YouTube Data API v3 kullanan, OOP mimarisiyle yazılmış Python veri analizi projesi.
 
